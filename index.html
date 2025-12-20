@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MD to PDF</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="card">
+        <h1>Markdown 转 PDF</h1>
+        
+        <div class="upload-section" id="dropZone">
+            <label for="fileInput" class="custom-file-upload" id="fileLabel">
+                <span id="fileNameDisplay">选择或拖入 MD 文件</span>
+            </label>
+            <input type="file" id="fileInput" accept=".md">
+        </div>
+
+        <button id="downloadBtn" class="btn-primary" disabled>生成并下载 PDF</button>
+    </div>
+
+    <div id="output-wrapper" style="display: none;">
+        <div id="output-content" class="markdown-body"></div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const fileNameDisplay = document.getElementById('fileNameDisplay');
+        const outputContent = document.getElementById('output-content');
+        const fileLabel = document.getElementById('fileLabel');
+        
+        let mdContent = "";
+        let finalFileName = "document.pdf";
+
+        // --- 核心逻辑：处理文件 ---
+        function handleFile(file) {
+            if (file && file.name.endsWith('.md')) {
+                finalFileName = file.name.replace('.md', '.pdf');
+                fileNameDisplay.textContent = file.name;
+                fileLabel.classList.add('selected');
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    mdContent = event.target.result;
+                    downloadBtn.disabled = false;
+                };
+                reader.readAsText(file);
+            } else {
+                alert("请上传 .md 格式的文件");
+            }
+        }
+
+        // 1. 点击上传监听
+        fileInput.addEventListener('change', (e) => {
+            handleFile(e.target.files[0]);
+        });
+
+        // 2. 拖拽进入监听
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault(); // 必须阻止默认行为，否则拖进去浏览器会直接打开文件
+            fileLabel.classList.add('dragover');
+        });
+
+        // 3. 拖拽离开监听
+        dropZone.addEventListener('dragleave', () => {
+            fileLabel.classList.remove('dragover');
+        });
+
+        // 4. 拖入松手监听
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileLabel.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            handleFile(file);
+        });
+
+        // --- 生成 PDF ---
+        downloadBtn.addEventListener('click', () => {
+            outputContent.innerHTML = marked.parse(mdContent);
+            const opt = {
+                margin: 15,
+                filename: finalFileName,
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            downloadBtn.textContent = "处理中...";
+            html2pdf().set(opt).from(outputContent).save().then(() => {
+                downloadBtn.textContent = "生成并下载 PDF";
+            });
+        });
+    </script>
+</body>
+</html>
